@@ -6,111 +6,335 @@
     <title>JavaScript Calculator with Currency Conversion</title>
 
     <style>
+        @import url('https://fonts.cdnfonts.com/css/calculator');
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .background-image {
+            position: fixed;
+            
+            z-index: -1;
+            width: 100%;
+            height: 100%;
+            background-repeat: no-repeat;
+            background-size: cover;
+
+            background-image: url("https://wallpapers.com/images/featured/mathematics-snya5mv2dogewetc.jpg");
+            filter: blur(3px);
+        }
         #calculator {
+            position:absolute;
             width: 300px;
+            height:400px;
             display: grid;
+            
             grid-template-columns: repeat(4, 1fr);
             gap: 5px;
-            margin-right: auto;
-            margin-left: auto;
+            
+            
+            background-color: grey;
+            padding: 30px;
+            border-radius: 10px;
+            border-style: solid;
+            border-width: 4px;
+        }
+        .calculator-container {         
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
         }
 
         .cell {
+            
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .cell input[type="button"] {
-            width: 100%;
-            font-size: 27px;
-            font-weight: bold;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+            .cell input[type="button"] {
+                width: 100%;
+                font-size: 27px;
+                font-weight: bold;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                box-shadow: 5px 5px 10px 2px rgba(0,0,0,.8);
+            }
 
         input[type="text"] {
             width: 100%;
             height: 90%;
-            font-size: 25px;
+            font-size: 40px;
+            text-align:end;
+            font-family: 'Calculator';
+            margin:15px;
+    
+           
         }
 
         input[type="button"] {
             width: 100%;
             height: 100%;
+            margin:5px;
+            border-style:solid;
+            border-width:5px;
+        }
+        @keyframes hoveredButton {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.2);
+            }
+        }
+        input[type="button"]:hover {
+            animation-name: hoveredButton;
+            animation-duration: 1s;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+        }
+
+        input[type="button"].selected {
+            width: 100%;
+            height: 100%;
+            background-color:red;
         }
 
         #result-holder {
             grid-column: span 4;
+            padding-bottom: 30px;
+           
+        }
+        #result {
+            background-color: rgb(111, 123, 95);
+            border-width:3px;
         }
     </style>
+    <script>
+        //we keep current operation value so we dont have to parse string every time
+        let currentOperation = null;
+        //we can only use 1 comma for given number
+        let usedComma = false;
+
+        let firstNumber = null;
+
+        let secondNumber = null;
+        //we check if we already converted to some currency, no purpose in converting multiple times
+        let alreadyConverted = false;
+        function currentEquationFinished() {
+            currentOperation = null;
+            usedComma = null;
+            firstNumber = null;
+            secondNumber = null;
+        }
+        //Function for highlighting and dehighliting the used corrency conversion
+        function flipHighlightConversion(event, needHihlighting) {
+            if (needHihlighting) {
+                event.target.classList.add('selected');
+            }
+            else {
+                const allButtons = document.querySelectorAll('input[type="button"]');
+                allButtons.forEach(button => {
+                    
+                        button.classList.remove('selected');
+                    
+                });
+            }
+        }
+        //main logic function for handling different buttons in our calculator
+        function handleButtonClick(event) {
+            if (event.target.type === 'button') {
+                result = document.getElementById('result')
+                buttonValue = event.target.value;
+                //C means that we want to delete current calculation so we reset the calculator state here, could also be handled refreshing the site
+                if (buttonValue == 'C') {
+                    result.value = '';
+                    flipHighlightConversion(event,false)
+                    alreadyConverted = false;
+                    currentEquationFinished();
+                    return;
+                }
+                //= means that we have to calculate the output of our equation 
+                else if (buttonValue == '=') {
+                    secondNumber = parseFloat(result.value.slice(firstNumber.length + 1));
+                    firstNumber = parseFloat(firstNumber);
+                    if (secondNumber == '') return;
+                    switch (currentOperation) {
+                        case ('+'):
+                            result.value = firstNumber + secondNumber;
+                            break;
+                        case ('-'):
+                            result.value = firstNumber - secondNumber;
+                            break;
+                        case ('*'):
+                            result.value = firstNumber * secondNumber;
+                            break;
+                        case ('/'):
+                            result.value = firstNumber / secondNumber;
+                            break;
+                        default:
+                            return;
+                    }
+             
+                    currentEquationFinished();
+                    //we check if resulting number already has a coma
+                    if (result.value % 1 > 0) {
+                        usedComma = true;
+                    }
+                    return;
+                }
+                //here we handle conversions to different  currencies
+                if (['GBP', 'EUR', 'USD'].includes(buttonValue)) {
+                    if (currentOperation != null) {
+                        alert('Finish equation before converting to other currencies!')
+                    }
+                    else if (alreadyConverted) {
+                        alert("You already converted from PLN in this equation!")
+                    }
+                  
+                    else {
+                        // /2023-11-12 as requested in the exercise has no data at the moment of doing this exercise
+                        fetch("http://api.nbp.pl/api/exchangerates/rates/c/" + buttonValue + "/today").then(response => {
+                            // Check if the request was successful (status code in the range of 200-299)
+                            if (!response.ok) {
+                                throw new Error('Couldnt get proper network response');
+                            }
+                            return response.json(); 
+                        })
+                            .then(data => {
+                                //Proper response, we get the conversion ratio
+                                flipHighlightConversion(event,true);
+                                alreadyConverted = true;
+                                result.value = result.value * data['rates'][0]['bid'].valueOf();
+                            })
+                            .catch(error => {
+                                // Handle errors
+                                console.error('There was a problem with the fetch operation:', error);
+                                alert('Error: ' + error.message);
+                            });
+                        return;
+                    }
+                }
+                //handling operations
+                else if (['+', '-', '*', '/'].includes(buttonValue)) {
+
+                    //means we are yet to choose an operation
+                    if (currentOperation == null) {
+                        firstNumber = result.value;
+                        
+                        currentOperation = buttonValue;
+                        //the second number can have its other comma, and we cant delete single characters, so we can flip this flag
+                        usedComma = false;
+                        result.value += buttonValue;
+                    }
+
+                    //if previous character is an operation user may yet change it if he didnt start typing another number
+                    else if (['+', '-', '*', '/'].includes(result.value.slice(-1))) {
+                        result.value = result.value.slice(0, -1);
+                        currentOperation = buttonValue;
+                    }
+                    else {
+                        alert("Finish current calculation before using another operation!")
+                    }
+                }
+
+                //here we handle comma usage
+                else if (buttonValue == '.') {
+                    if (usedComma || ['+', '-', '*', '/'].includes(result.value.slice(-1)) || result.value == '') {
+                        return;
+                    }
+                    else {
+                        usedComma = true;
+                        result.value += buttonValue;
+                    }
+                }
+                //the remaining characters are numbers and can be appended to the result input
+                else {
+                    result.value += buttonValue;
+                }
+                
+
+
+            }
+        }
+        
+    </script>
 </head>
 <body>
-    <div id="calculator">
-        <div class="cell" id="result-holder">
-            <input type="text" id="result" />
-        </div>
-        <div class="cell">
-            <input type="button" value="GBP" />
-        </div>
-        <div class="cell">
-            <input type="button" value="EUR" />
-        </div>
-        <div class="cell">
-            <input type="button" value="USD" />
-        </div>
-        <div class="cell">
-            <input type="button" value="C" />
-        </div>
-        <div class="cell">
-            <input type="button" value="7" />
-        </div>
-        <div class="cell">
-            <input type="button" value="8" />
-        </div>
-        <div class="cell">
-            <input type="button" value="9" />
-        </div>
-        <div class="cell">
-            <input type="button" value="/" />
-        </div>
-        <div class="cell">
-            <input type="button" value="4" />
-        </div>
-        <div class="cell">
-            <input type="button" value="5" />
-        </div>
-        <div class="cell">
-            <input type="button" value="6" />
-        </div>
-        <div class="cell">
-            <input type="button" value="*" />
-        </div>
-        <div class="cell">
-            <input type="button" value="1" />
-        </div>
-        <div class="cell">
-            <input type="button" value="2" />
-        </div>
-        <div class="cell">
-            <input type="button" value="3" />
-        </div>
-        <div class="cell">
-            <input type="button" value="-" />
-        </div>
-        <div class="cell">
-            <input type="button" value="." />
-        </div>
-        <div class="cell">
-            <input type="button" value="0" />
-        </div>
-        <div class="cell">
-            <input type="button" value="=" />
-        </div>
-        <div class="cell">
-            <input type="button" value="+" />
+    <div class="background-image"></div>
+    <div class="calculator-container">
+        <div id="calculator" onclick="handleButtonClick(event)">
+            <div class="cell" id="result-holder">
+                <input type="text" id="result" readonly />
+            </div>
+            <div class="cell">
+                <input type="button" value="GBP" />
+            </div>
+            <div class="cell">
+                <input type="button" value="EUR" />
+            </div>
+            <div class="cell">
+                <input type="button" value="USD" />
+            </div>
+            <div class="cell">
+                <input type="button" value="C" />
+            </div>
+            <div class="cell">
+                <input type="button" value="7" />
+            </div>
+            <div class="cell">
+                <input type="button" value="8" />
+            </div>
+            <div class="cell">
+                <input type="button" value="9" />
+            </div>
+            <div class="cell">
+                <input type="button" value="/" />
+            </div>
+            <div class="cell">
+                <input type="button" value="4" />
+            </div>
+            <div class="cell">
+                <input type="button" value="5" />
+            </div>
+            <div class="cell">
+                <input type="button" value="6" />
+            </div>
+            <div class="cell">
+                <input type="button" value="*" />
+            </div>
+            <div class="cell">
+                <input type="button" value="1" />
+            </div>
+            <div class="cell">
+                <input type="button" value="2" />
+            </div>
+            <div class="cell">
+                <input type="button" value="3" />
+            </div>
+            <div class="cell">
+                <input type="button" value="-" />
+            </div>
+            <div class="cell">
+                <input type="button" value="." />
+            </div>
+            <div class="cell">
+                <input type="button" value="0" />
+            </div>
+            <div class="cell">
+                <input type="button" value="=" />
+            </div>
+            <div class="cell">
+                <input type="button" value="+" />
+            </div>
         </div>
     </div>
+
 </body>
 </html>
