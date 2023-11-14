@@ -8,6 +8,7 @@ using System.Collections;
 
 namespace FactoryAPI.Controllers
 {
+    //item controller providing us with responses to various requests - as well as responses in case the request could not be finished
     [Route("api/[controller]")]
     [ApiController]
     public class ItemController : ControllerBase

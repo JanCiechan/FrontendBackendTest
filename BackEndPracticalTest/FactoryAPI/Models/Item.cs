@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FactoryAPI.Models
 {
+    //our model describing item based off which we will create our database schema
     public class Item
     {
         public int Id { get; set; }
