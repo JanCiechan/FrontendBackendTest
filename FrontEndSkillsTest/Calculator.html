@@ -187,7 +187,7 @@
                     if (result.value % 1 > 0) {
                         usedComma = true;
                     }
-                    result.value =Math.round((result.value + Number.EPSILON) * 100) / 100;
+                    result.value =(Math.round((result.value) * 100 +0.5) / 100).toString();
                     return;
                 }
                 //here we handle conversions to different  currencies
@@ -212,7 +212,7 @@
                                 flipHighlightConversion(event,true);
                                 alreadyConverted = true;
                                 //we round to the 2 decimal places 
-                                result.value = Math.round((result.value / data['rates'][0]['bid'].valueOf() + Number.EPSILON)*100)/100;
+                                result.value = Math.round((result.value / data['rates'][0]['bid'].valueOf() +0.5)*100)/100;
                             })
                             .catch(error => {
                                 // Handle errors
