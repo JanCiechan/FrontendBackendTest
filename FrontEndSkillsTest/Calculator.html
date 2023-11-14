@@ -187,6 +187,7 @@
                     if (result.value % 1 > 0) {
                         usedComma = true;
                     }
+                    result.value =Math.round((result.value + Number.EPSILON) * 100) / 100;
                     return;
                 }
                 //here we handle conversions to different  currencies
@@ -200,18 +201,18 @@
                   
                     else {
                         // /2023-11-12 as requested in the exercise has no data at the moment of doing this exercise
-                        fetch("http://api.nbp.pl/api/exchangerates/rates/c/" + buttonValue + "/today").then(response => {
-                            // Check if the request was successful (status code in the range of 200-299)
+                        fetch(`http://api.nbp.pl/api/exchangerates/rates/c/${buttonValue}/today`).then(response => { 
                             if (!response.ok) {
                                 throw new Error('Couldnt get proper network response');
                             }
                             return response.json(); 
                         })
                             .then(data => {
-                                //Proper response, we get the conversion ratio
+                                //Proper response, we get the conversion ratio and highlight the converted currency
                                 flipHighlightConversion(event,true);
                                 alreadyConverted = true;
-                                result.value = result.value * data['rates'][0]['bid'].valueOf();
+                                //we round to the 2 decimal places 
+                                result.value = Math.round((result.value / data['rates'][0]['bid'].valueOf() + Number.EPSILON)*100)/100;
                             })
                             .catch(error => {
                                 // Handle errors
@@ -237,6 +238,7 @@
                     //if previous character is an operation user may yet change it if he didnt start typing another number
                     else if (['+', '-', '*', '/'].includes(result.value.slice(-1))) {
                         result.value = result.value.slice(0, -1);
+                        result.value += buttonValue;
                         currentOperation = buttonValue;
                     }
                     else {

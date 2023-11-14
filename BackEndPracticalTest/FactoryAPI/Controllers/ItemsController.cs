@@ -50,7 +50,7 @@ namespace FactoryAPI.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
-            // Delete an item
+        // Delete an item
         [HttpDelete("{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
